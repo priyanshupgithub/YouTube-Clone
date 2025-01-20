@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { useDispatch } from "react-redux";
+import React, { useState, useEffect, cache } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { toggleMenu } from "../utils/appSlice";
 import { YOUTUBE_SEARCH_API } from "../utils/constants";
+import { cacheResults } from "../utils/searchSlice";
 
 const Head = () => {
   const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState(""); //whatever we are typing or search
   const [suggestions, setSuggestions] = useState([]); // whatever the results(suggestions are shown)
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const searchCache = useSelector((store) => store.search); // use for caching
 
   useEffect(() => {
     //make an api call every key press
@@ -16,7 +19,19 @@ const Head = () => {
 
     const timer = setTimeout(() => {
       //it makes the api call after 200 second
-      getSearchSuggestions();
+
+      /*
+      searchCache = {
+        "iphone" : ["iphone 11","iphone 12", "iphone 13"] //if searchCache me ye ha and
+      }
+      searchQuery = iphone   // searchQuery iphone kr rhe ha to searchCache ki searchQuery ki values setSuggestions me daal denge kyu ki vo pehle se hi ha 
+      */
+      if (searchCache[searchQuery]) {
+        // agar mera search(jo search kar rha hu) searchcache me hai to jo searchquery ki values ha vo hi setSuggesions me daal do
+        setSuggestions(searchCache[searchQuery]);
+      } else {
+        getSearchSuggestions();
+      }
     }, 200);
 
     return () => {
@@ -32,6 +47,11 @@ const Head = () => {
     // console.log(json[1]);
     setSuggestions(json[1]);
     setShowSuggestions(true);
+    dispatch(
+      cacheResults({
+        [searchQuery]: json[1],
+      })
+    );
   };
 
   const toggleMenuHandler = () => {
